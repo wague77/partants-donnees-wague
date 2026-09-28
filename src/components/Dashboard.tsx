@@ -100,7 +100,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setReunions([]);
       setSelectedMeetingNum(null);
       setSelectedRaceNum(null);
-    } fontally: {
+    } finally {
       setIsLoadingProgramme(false);
     }
   }, [verifyBlocklistOrEject, onLogout]);

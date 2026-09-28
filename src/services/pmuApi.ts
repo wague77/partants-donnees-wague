@@ -9,22 +9,47 @@ import { enforceBlocklistCheck, cookies } from './authService';
 
 const PMU_BASE_URL = 'https://offline.turfinfo.api.pmu.fr/rest/client/7/programme';
 
-async function callPmuApi<T>(url: string): Promise<T> {
+async function callPmuApi<T>(rawUrlOrSubpath: string): Promise<T> {
   const blockCheck = enforceBlocklistCheck();
   if (!blockCheck.ok) {
     cookies().delete('app_access_token');
     throw new Error('401 Unauthorized: Session révoquée sur la blocklist (app_access_token coupé directement).');
   }
 
+  const cleanSubpath = rawUrlOrSubpath
+    .replace('https://offline.turfinfo.api.pmu.fr/rest/client/7/programme', '')
+    .replace(/^\/+/, '');
+
+  const url = typeof window !== 'undefined'
+    ? `/api/pmu/${cleanSubpath}`
+    : `https://offline.turfinfo.api.pmu.fr/rest/client/7/programme/${cleanSubpath}`;
+
   const customFetch = typeof window !== 'undefined' ? (window as any)?.nova?.fetch : undefined;
   const fetchFn = typeof customFetch === 'function' ? customFetch : fetch;
 
-  const response = await fetchFn(url, {
-    method: 'GET',
-    headers: {
-      Accept: 'application/json',
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetchFn(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+  } catch (fetchErr: any) {
+    if (typeof window !== 'undefined' && url.startsWith('/api/pmu/')) {
+      try {
+        const directUrl = `https://offline.turfinfo.api.pmu.fr/rest/client/7/programme/${cleanSubpath}`;
+        response = await fetchFn(directUrl, {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        });
+      } catch {
+        throw new Error(`Erreur de connexion aux données PMU: ${fetchErr?.message || 'Failed to fetch'}`);
+      }
+    } else {
+      throw new Error(`Erreur de connexion aux données PMU: ${fetchErr?.message || 'Failed to fetch'}`);
+    }
+  }
 
   if (!response.ok) {
     if (response.status === 404) {
