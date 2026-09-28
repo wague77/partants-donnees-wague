@@ -419,7 +419,7 @@ export async function createAccessCode(params: {
 
   // Appel Supabase API
   try {
-    await fetch('/api/codes', {
+    const res = await fetch('/api/codes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -428,6 +428,15 @@ export async function createAccessCode(params: {
         customCode: cleanCode,
       }),
     });
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json.code) {
+        newCode.id = json.code.id;
+        newCode.code = json.code.code;
+        newCode.expiresAt = json.code.expires_at ? new Date(json.code.expires_at).getTime() : null;
+      }
+    }
   } catch (e) {
     console.error('Erreur création Supabase code:', e);
   }

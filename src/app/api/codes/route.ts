@@ -33,11 +33,14 @@ export async function POST(request: NextRequest) {
       cleanCode = `WAGUE-${rand1}-${rand2}`;
     }
 
-    let expiresAt: string | null = null;
-    if (durationDays && durationDays > 0) {
+    let expiresAt: string;
+    if (durationDays && Number(durationDays) > 0) {
       const d = new Date();
       d.setDate(d.getDate() + Number(durationDays));
       expiresAt = d.toISOString();
+    } else {
+      // 100 ans par défaut pour satisfaire la contrainte NOT NULL de Supabase
+      expiresAt = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000).toISOString();
     }
 
     const newRow = {
